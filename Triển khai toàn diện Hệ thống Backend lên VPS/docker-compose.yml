@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  # 1. API Gateway (Nginx)
+  gateway:
+    image: nginx:latest
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # 2. Spring Boot Backend
+  backend:
+    # Sử dụng một image Spring Boot demo hoặc thay bằng image thực tế của bạn
+    image: springio/gs-spring-boot-docker:latest 
+    container_name: backend-service
+    expose:
+      - "8080" # Chỉ mở cổng trong mạng nội bộ, không publish ra host
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/app_db
+      SPRING_DATASOURCE_USERNAME: db_admin
+      SPRING_DATASOURCE_PASSWORD: db_password
+    depends_on:
+      - postgres-db
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # 3. Database PostgreSQL
+  postgres-db:
+    image: postgres:15
+    container_name: prod-database
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: db_admin
+      POSTGRES_PASSWORD: db_password
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    restart: unless-stopped
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  db_data:
